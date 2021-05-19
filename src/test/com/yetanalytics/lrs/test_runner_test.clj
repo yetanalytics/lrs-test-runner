@@ -35,6 +35,18 @@
     (http/start server)
     #(http/stop server)))
 
+;; manual
+(deftest manual-test
+  (let [stop-fn (run-lrs)
+        test-suite-dir (-> (clone-test-suite)
+                           install-test-suite!)
+        ret (:success? (run-test-suite*
+                        test-suite-dir
+                        "-e" "http://localhost:8080/xapi" "-b" "-z"))]
+    (is (true? ret))
+    (stop-fn)
+    ;; cleanup
+    (delete-test-suite! test-suite-dir)))
 
 ;; Two different styles for using the dynamic var
 
