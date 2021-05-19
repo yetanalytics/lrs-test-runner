@@ -1,6 +1,6 @@
 # com.yetanalytics.lrs/test-runner
 
-Run the [ADL LRS Conformance Test Suite](https://github.com/adlnet/lrs-conformance-test-suite) from clojure tests.
+Run the [ADL LRS Conformance Test Suite](https://github.com/adlnet/lrs-conformance-test-suite) from clojure tests. Create per-test-run or per-test instances of the test suite.
 
 ## Usage
 
@@ -40,6 +40,15 @@ The tests show the 3 basic ways to use this:
       (is (true? ret)))))
 
 ```
+
+## Roadmap
+
+This is basically a port of what `lrs` does, and assumes a working node/npm environment.
+
+- [ ] Ensure node/npm environment
+- [ ] Async shell (currently uses `clojure.java.shell`)
+- [ ] Spec for test output, better output handling
+- [ ] Logging control/config
 
 ## License
 
