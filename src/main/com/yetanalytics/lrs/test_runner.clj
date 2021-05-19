@@ -1,6 +1,11 @@
 (ns com.yetanalytics.lrs.test-runner
   (:require [clojure.java.shell :as shell :refer [sh]]
-            [clojure.tools.logging :as l])
+            [clojure.tools.logging :as l]
+            [clojure.pprint :as pprint]
+            [clojure.walk :as w]
+            [clojure.java.io :as io]
+            [clojure.data.json :as json]
+            )
   (:import [java.io File]
            [java.nio.file.attribute FileAttribute]
            [java.nio.file Files Path]
@@ -30,41 +35,128 @@
 
 (defn clone-test-suite
   "Ensure that the test suite exists and is installed, return the dir if OK"
-  [& {:keys [branch]
-      :or {branch "master"}}]
+  [& {:keys [branch git-uri]
+      :or {git-uri "https://github.com/adlnet/lrs-conformance-test-suite.git"
+           branch "master"}}]
   ;; Attempt Clone
   (l/infof "Downloading LRS Tests from branch: %s" branch)
   (let [^File tempdir (temp-dir)
-        conf-git-uri "https://github.com/adlnet/lrs-conformance-test-suite.git"
+
         {clone-exit :exit :as clone-result} (sh
                                              "git"
                                              "clone"
                                              "--branch" branch
-                                             conf-git-uri
+                                             git-uri
                                              (.getPath tempdir))
         _ (report-sh-result clone-result)
         clone-success? (zero? clone-exit)]
-    (when-not clone-success?
-      (l/warnf "Could not clone from %s on branch %s"
-               conf-git-uri
-               branch))
-    (when clone-success?
-      tempdir)))
+    (if clone-success?
+      tempdir
+      (do
+        (l/errorf  (ex-info "Clone Exception"
+                            {:type ::clone-exception
+                             :git-uri git-uri
+                             :branch branch})
+                   "Could not clone from %s on branch %s"
+                   git-uri
+                   branch)))))
 
 (defn install-test-suite!
   "Given the test suite dir, try to install the test deps, return the dir if it
   can"
   [^File tempdir]
-  (let [{:keys [exit]
-         :as install-result} (sh "npm" "install"
-                                 :dir tempdir)]
-    (if (zero? exit)
-      tempdir
-      (l/warnf "Test Suite install failed to %s" (.getPath tempdir)))))
+  (or (and (.exists (io/file (format
+                              "%s/node_modules"
+                              (.getPath tempdir))
+                             ))
+           tempdir)
+      (let [{:keys [exit]
+             :as install-result} (sh "npm" "install"
+                                     :dir tempdir)]
+        (report-sh-result install-result)
+        (if (zero? exit)
+          tempdir
+          (do (l/warnf "Test Suite install failed to %s" (.getPath tempdir))
+              (throw (ex-info "Test Suite Install exception"
+                              {:type ::install-exception
+                               :tempdir tempdir})))))))
+
+
+(defrecord RequestLog [out-str])
+
+(defn wrap-request-logs
+  [log-root]
+  (w/prewalk (fn [node]
+               (if (some-> node :log string?)
+                 (update node :log #(RequestLog. %))
+                 node))
+             log-root))
+
+(defn extract-logs [^File tempdir]
+  (into []
+        (for [^File f (rest (file-seq (io/file (format "%s/logs"
+                                                       (.getPath tempdir)))))
+              :when (and (not (.isDirectory f))
+                         (not (.endsWith (.getPath f) ".json")))
+              :let [{:keys [log] :as test-output} (with-open [rdr (io/reader f)]
+                                                    (json/read rdr :key-fn keyword))]]
+          {:file f
+           :output test-output})))
+
+(defn print-logs [logs]
+  (doall
+   (doseq [{:keys [^File file
+                   output]} logs]
+     (l/infof "\nLog: %s\n\n" (.getPath file))
+     (pprint/pprint (wrap-request-logs output))))
+  (flush))
+
+(defn delete-logs [^File tempdir]
+  (l/info "Cleaning Logs...")
+  (doseq [^File f (rest (file-seq (io/file (format "%s/logs"
+                                                   (.getPath tempdir)))))]
+    (l/infof "Deleting Log: %s"
+             (.getPath f))
+    (.delete f)))
+
+(defn run-test-suite*
+  "Run tests for a directory, with args if desired"
+  [^File tempdir & args]
+  (l/infof "Running Tests at %s, args: %s" (.getPath tempdir) (prn-str args))
+  (let [run-args (or (not-empty args) ["-e" "http://localhost:8080/xapi" "-b" "-z"])
+        {:keys [exit out err] :as test-result}
+        (apply sh
+               "node" "bin/console_runner.js"
+               (concat
+                run-args
+                [:dir tempdir]))
+        logs (extract-logs tempdir)]
+    (report-sh-result test-result)
+    (print-logs logs)
+    {:success? (zero? exit)
+     :logs (mapv :output logs)}))
 
 (def ^:dynamic *current-test-suite-dir*
- nil)
+  nil)
 
+(defn run-test-suite
+  [& args]
+  (if *current-test-suite-dir*
+    (apply run-test-suite* *current-test-suite-dir* args)
+    (throw (ex-info "No test suite currently loaded!"
+                    {:type ::no-test-suite
+                     :args args}))))
+
+(defn conformant?
+  "shortcut to just see if it is success"
+  [& args]
+  (:success? (apply run-test-suite args) false))
+
+(defn delete-test-suite!
+  [^File tempdir]
+  (.delete tempdir))
+
+;; macro wrapper makes it work
 (defmacro with-test-suite
   "Do things with a test suite and clean it up"
   [& body]
@@ -74,11 +166,17 @@
      (try
        ~@body
        (finally
-         (.delete *current-test-suite-dir*)))))
+         (delete-test-suite! *current-test-suite-dir*)))))
 
-;; TODO: remove boiler
+;; or fixture
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (prn x "Hello, World!"))
+(defn test-suite-fixture
+  "Fixture to ensure clean test environment."
+  [f]
+  (binding [*current-test-suite-dir*
+            (some-> (clone-test-suite)
+                    install-test-suite!)]
+    (try
+      (f)
+      (finally
+        (delete-test-suite! *current-test-suite-dir*)))))

@@ -1,11 +1,14 @@
 {:paths ["src/main" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
-        org.clojure/tools.logging {:mvn/version "1.1.0"}}
+        org.clojure/tools.logging {:mvn/version "1.1.0"}
+        org.clojure/data.json {:mvn/version "2.3.1"}}
  :aliases
  {:test {:extra-paths ["src/test"]
          :extra-deps {com.yetanalytics/lrs
                       {:git/url "git@github.com:yetanalytics/lrs"
                        :sha "84d6e54033f0c84575564c070001530bdece95b2"}
+                      io.pedestal/pedestal.service {:mvn/version "0.5.7"}
+                      io.pedestal/pedestal.jetty {:mvn/version "0.5.7"}
                       io.github.cognitect-labs/test-runner
                       {:git/url "https://github.com/cognitect-labs/test-runner"
                        :sha "2d69f33d7980c3353b246c28f72ffeafbd9f2fab"}
