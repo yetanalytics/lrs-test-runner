@@ -76,10 +76,12 @@
         (report-sh-result install-result)
         (if (zero? exit)
           tempdir
-          (do (l/warnf "Test Suite install failed to %s" (.getPath tempdir))
+          (do (report-sh-result install-result)
+              (l/warnf "Test Suite install failed to %s" (.getPath tempdir))
               (throw (ex-info "Test Suite Install exception"
                               {:type ::install-exception
-                               :tempdir tempdir})))))))
+                               :tempdir tempdir
+                               :install-result install-result})))))))
 
 
 (defrecord RequestLog [out-str])
