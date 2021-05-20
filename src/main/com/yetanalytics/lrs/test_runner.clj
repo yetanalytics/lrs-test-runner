@@ -60,6 +60,14 @@
                    "Could not clone from %s on branch %s"
                    git-uri
                    branch)))))
+(defn remove-lock!
+  "Remove the package lock which causes issues in some envs"
+  [^File tempdir]
+  (l/info "removing package lock")
+  (let [{:keys [exit] :as remove-lock-result}
+        (sh "rm" "-f" (format "%s/package-lock.json"
+                              (.getPath tempdir)))]
+    (zero? exit)))
 
 (defn install-test-suite!
   "Given the test suite dir, try to install the test deps, return the dir if it
@@ -70,18 +78,22 @@
                               (.getPath tempdir))
                              ))
            tempdir)
-      (let [{:keys [exit]
-             :as install-result} (sh "npm" "install"
-                                     :dir tempdir)]
-        (report-sh-result install-result)
-        (if (zero? exit)
-          tempdir
-          (do (report-sh-result install-result)
-              (l/warnf "Test Suite install failed to %s" (.getPath tempdir))
-              (throw (ex-info "Test Suite Install exception"
-                              {:type ::install-exception
-                               :tempdir tempdir
-                               :install-result install-result})))))))
+      (if (remove-lock! tempdir)
+        (let [{:keys [exit]
+               :as install-result} (sh "npm" "install"
+                                       :dir tempdir)]
+          (report-sh-result install-result)
+          (if (zero? exit)
+            tempdir
+            (do (report-sh-result install-result)
+                (l/warnf "Test Suite install failed to %s" (.getPath tempdir))
+                (throw (ex-info "Test Suite Install exception"
+                                {:type ::install-exception
+                                 :tempdir tempdir
+                                 :install-result install-result})))))
+        (throw (ex-info "Can't remove lockfile"
+                        {:type ::delete-lockfile-exception
+                         :tempdir tempdir})))))
 
 
 (defrecord RequestLog [out-str])

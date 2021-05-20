@@ -42,7 +42,8 @@
                            install-test-suite!)
         ret (:success? (run-test-suite*
                         test-suite-dir
-                        "-e" "http://localhost:8080/xapi" "-b" "-z"))]
+                        "-e" "http://localhost:8080/xapi" "-b" "-z"
+                        "-g" "XAPI-00315"))]
     (is (true? ret))
     (stop-fn)
     ;; cleanup
@@ -54,7 +55,8 @@
 (deftest with-test-suite-test
   (with-test-suite
     (let [stop-fn (run-lrs)
-          ret (conformant? "-e" "http://localhost:8080/xapi" "-b" "-z")]
+          ret (conformant? "-e" "http://localhost:8080/xapi" "-b" "-z"
+                           "-g" "XAPI-00315")]
       (stop-fn)
       (is (true? ret)))))
 
@@ -62,6 +64,7 @@
 (deftest test-suite-fixture-test
   (test-suite-fixture
    #(let [stop-fn (run-lrs)
-          ret (conformant? "-e" "http://localhost:8080/xapi" "-b" "-z")]
+          ret (conformant? "-e" "http://localhost:8080/xapi" "-b" "-z"
+                           "-g" "XAPI-00315")]
       (stop-fn)
       (is (true? ret)))))
