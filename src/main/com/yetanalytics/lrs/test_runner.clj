@@ -4,7 +4,8 @@
             [clojure.pprint :as pprint]
             [clojure.walk :as w]
             [clojure.java.io :as io]
-            [clojure.data.json :as json])
+            [clojure.data.json :as json]
+            [clojure.string :as cs])
   (:import [java.io File]
            [java.nio.file.attribute FileAttribute]
            [java.nio.file Files Path]
@@ -94,14 +95,11 @@
                         {:type ::delete-lockfile-exception
                          :tempdir tempdir})))))
 
-
-(defrecord RequestLog [out-str])
-
 (defn wrap-request-logs
   [log-root]
   (w/prewalk (fn [node]
                (if (some-> node :log string?)
-                 (update node :log #(RequestLog. %))
+                 (update node :log cs/split-lines)
                  node))
              log-root))
 
