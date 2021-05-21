@@ -4,7 +4,8 @@
             [clojure.pprint :as pprint]
             [clojure.walk :as w]
             [clojure.java.io :as io]
-            [clojure.data.json :as json])
+            [clojure.data.json :as json]
+            [clojure.string :as cs])
   (:import [java.io File]
            [java.nio.file.attribute FileAttribute]
            [java.nio.file Files Path]
@@ -100,10 +101,19 @@
 (defn wrap-request-logs
   [log-root]
   (w/prewalk (fn [node]
-               (if (some-> node :log string?)
+               (if (some-> node :log :out-str string?)
                  (update node :log #(RequestLog. %))
                  node))
              log-root))
+
+(defmethod clojure.pprint/simple-dispatch RequestLog
+  [{:keys [out-str]}]
+  (pprint/pprint-logical-block
+   :prefix "<" :suffix ">"
+   (doseq [line (cs/split-lines out-str)]
+     (pprint/pprint-newline :linear)
+     (.write ^java.io.Writer *out* ^String line))
+   (pprint/pprint-newline :linear)))
 
 (defn extract-logs [^File tempdir]
   (into []
