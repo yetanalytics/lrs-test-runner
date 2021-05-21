@@ -4,8 +4,7 @@
             [clojure.pprint :as pprint]
             [clojure.walk :as w]
             [clojure.java.io :as io]
-            [clojure.data.json :as json]
-            )
+            [clojure.data.json :as json])
   (:import [java.io File]
            [java.nio.file.attribute FileAttribute]
            [java.nio.file Files Path]
@@ -39,7 +38,7 @@
       :or {git-uri "https://github.com/adlnet/lrs-conformance-test-suite.git"
            branch "master"}}]
   ;; Attempt Clone
-  (l/infof "Downloading LRS Tests from branch: %s" branch)
+  (l/debugf "Downloading LRS Tests from branch: %s" branch)
   (let [^File tempdir (temp-dir)
 
         {clone-exit :exit :as clone-result} (sh
@@ -63,7 +62,7 @@
 (defn remove-lock!
   "Remove the package lock which causes issues in some envs"
   [^File tempdir]
-  (l/info "removing package lock")
+  (l/debug "removing package lock")
   (let [{:keys [exit] :as remove-lock-result}
         (sh "rm" "-f" (format "%s/package-lock.json"
                               (.getPath tempdir)))]
@@ -121,22 +120,22 @@
   (doall
    (doseq [{:keys [^File file
                    output]} logs]
-     (l/infof "\nLog: %s\n\n" (.getPath file))
+     (l/debugf "\nLog: %s\n\n" (.getPath file))
      (pprint/pprint (wrap-request-logs output))))
   (flush))
 
 (defn delete-logs [^File tempdir]
-  (l/info "Cleaning Logs...")
+  (l/debug "Cleaning Logs...")
   (doseq [^File f (rest (file-seq (io/file (format "%s/logs"
                                                    (.getPath tempdir)))))]
-    (l/infof "Deleting Log: %s"
+    (l/debugf "Deleting Log: %s"
              (.getPath f))
     (.delete f)))
 
 (defn run-test-suite*
   "Run tests for a directory, with args if desired"
   [^File tempdir & args]
-  (l/infof "Running Tests at %s, args: %s" (.getPath tempdir) (prn-str args))
+  (l/debugf "Running Tests at %s, args: %s" (.getPath tempdir) (prn-str args))
   (let [run-args (or (not-empty args) ["-e" "http://localhost:8080/xapi" "-b" "-z"])
         {:keys [exit out err] :as test-result}
         (apply sh
