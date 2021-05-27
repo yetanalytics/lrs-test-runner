@@ -114,13 +114,16 @@
           {:file f
            :output test-output})))
 
+(def ^:dynamic *print-logs* false)
+
 (defn print-logs [logs]
-  (doall
-   (doseq [{:keys [^File file
-                   output]} logs]
-     (l/debugf "\nLog: %s\n\n" (.getPath file))
-     (pprint/pprint (wrap-request-logs output))))
-  (flush))
+  (when *print-logs*
+    (doall
+     (doseq [{:keys [^File file
+                     output]} logs]
+       (l/debugf "\nLog: %s\n\n" (.getPath file))
+       (pprint/pprint (wrap-request-logs output))))
+    (flush)))
 
 (defn delete-logs [^File tempdir]
   (l/debug "Cleaning Logs...")
