@@ -23,7 +23,7 @@
     (.deleteOnExit file)
     file))
 
-(defn report-sh-result
+(defn ^:dynamic report-sh-result
   "Print a generic sh output."
   [{:keys [exit out err]}]
   (when-let [o (not-empty out)]
