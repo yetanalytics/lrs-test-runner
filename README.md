@@ -54,4 +54,4 @@ This is basically a port of what `lrs` does, and assumes a working node/npm envi
 
 Copyright © 2021 Yet Analytics
 
-Distributed under the Eclipse Public License version 1.0.
+Distributed under the Apache License version 2.0.
