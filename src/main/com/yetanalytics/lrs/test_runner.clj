@@ -186,9 +186,9 @@
 
 (defn test-suite-fixture
   "Fixture to ensure clean test environment."
-  [f]
+  [f & clone-args]
   (binding [*current-test-suite-dir*
-            (some-> (clone-test-suite)
+            (some-> (apply clone-test-suite clone-args)
                     install-test-suite!)]
     (try
       (f)
