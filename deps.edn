@@ -5,7 +5,7 @@
  :aliases
  {:test {:extra-paths ["src/test"]
          :extra-deps {com.yetanalytics/lrs
-                      {:git/url "git@github.com:yetanalytics/lrs"
+                      {:git/url "https://github.com/yetanalytics/lrs"
                        :sha "84d6e54033f0c84575564c070001530bdece95b2"}
                       io.pedestal/pedestal.service {:mvn/version "0.5.7"}
                       io.pedestal/pedestal.jetty {:mvn/version "0.5.7"}
