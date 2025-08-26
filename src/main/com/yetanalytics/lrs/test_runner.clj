@@ -182,6 +182,18 @@
        (finally
          (delete-test-suite! *current-test-suite-dir*)))))
 
+(defmacro with-test-suite-args
+  "Do things with a test suite and clean it up, taking a map of clone args
+  as the first argument."
+  [argm & body]
+  `(binding [*current-test-suite-dir*
+             (some-> (apply clone-test-suite (-> argm seq flatten))
+                     install-test-suite!)]
+     (try
+       ~@body
+       (finally
+         (delete-test-suite! *current-test-suite-dir*)))))
+
 ;; or fixture
 
 (defn test-suite-fixture
