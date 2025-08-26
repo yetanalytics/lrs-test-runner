@@ -187,7 +187,7 @@
   as the first argument."
   [argm & body]
   `(binding [*current-test-suite-dir*
-             (some-> (apply clone-test-suite (-> argm seq flatten))
+             (some-> (clone-test-suite ~@(-> argm seq flatten))
                      install-test-suite!)]
      (try
        ~@body
