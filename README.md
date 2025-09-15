@@ -31,7 +31,20 @@ The tests show the 3 basic ways to use this:
       (stop-fn)
       (is (true? ret)))))
 
-;; fixture ;; (use-fixtures :once test-suite-fixture)
+(deftest with-test-suite-args-test
+  (with-test-suite-args
+    {:branch "some-branch"}
+    (let [stop-fn (run-lrs)
+          ret (conformant? "-e" "http://localhost:8080/xapi" "-b" "-z")]
+      (stop-fn)
+      (is (true? ret)))))
+
+;; fixture ;;
+
+(use-fixtures :once test-suite-fixture)
+;; or
+(use-fixtures :once #(test-suite-fixture % :branch "some-branch"))
+
 (deftest test-suite-fixture-test
   (test-suite-fixture
    #(let [stop-fn (run-lrs)
@@ -40,6 +53,12 @@ The tests show the 3 basic ways to use this:
       (is (true? ret)))))
 
 ```
+
+### Options
+
+The following options are available:
+* git-uri - an alternate source for the conformance tests, defaults to https://github.com/adlnet/lrs-conformance-test-suite.git
+* branch - an alternate branch, defaults to `master`
 
 ## Roadmap
 
