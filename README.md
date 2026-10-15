@@ -41,6 +41,24 @@ The tests show the 3 basic ways to use this:
 
 ```
 
+## Dependency vulnerability tracking
+
+The `Deps` GitHub Actions workflow generates a Maven POM from `deps.edn` and
+submits the resolved Maven dependency tree to GitHub on pushes to `main`.
+It can also be run manually from the Actions tab. With dependency graph and
+Dependabot alerts enabled, GitHub can report known vulnerabilities in these
+dependencies.
+
+Run `make pom.xml` to generate the same POM locally. The generated file replaces
+the old checked-in POM and is ignored by Git; `deps.edn` remains the dependency
+source.
+
+This submission covers the base library dependencies and their Maven transitives.
+It excludes dependencies added by the `:test` alias, including its Git dependencies.
+That alias needs separate dependency submission handling before test dependency
+coverage is complete. The external ADL conformance suite and its npm dependencies
+are also outside this Maven submission.
+
 ## Roadmap
 
 This is basically a port of what `lrs` does, and assumes a working node/npm environment.
